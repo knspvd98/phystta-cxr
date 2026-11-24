@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+__pycache__
+.pytest_cache
+data
+data_indexes
+outputs
+registry
+checkpoints
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.dcm
+*.nii*

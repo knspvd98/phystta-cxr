@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use PhysTTA, please cite the related publication."
+title: "PhysTTA: reliability research for chest X-ray models under technical shifts"
+type: software
+version: 0.2.0
+authors:
+  - family-names: Konyspayev
+    given-names: Dias
+repository-code: "https://github.com/knspvd98/phystta-cxr"
+license: MIT
+preferred-citation:
+  type: article
+  title: "Reliability and Decision Support of Artificial Intelligence in Chest Radiography under Technical Image Shifts"
+  authors:
+    - family-names: Konyspayev
+      given-names: Dias
+    - family-names: Kuzenbayev
+      given-names: Batyrkhan
+    - family-names: Abatov
+      given-names: Nurlybay
+    - family-names: Alippayeva
+      given-names: Dinara
+  journal: "Vestnik KazATK"
+  year: 2026
+  volume: 144
+  issue: 3
+  start: 300
+  end: 312
+  doi: "10.52167/1609-1817-2026-144-3-300-312"

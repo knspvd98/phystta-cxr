@@ -1,0 +1,95 @@
+# Canonical bounded CLIP-lineage hard head-subspace variant, k=4.
+data:
+  sources:
+    - name: mimic
+      root: ./data/mimic_cxr_jpg
+      metadata_csv: ./data/mimic_cxr_jpg/mimic-cxr-2.0.0-chexpert.csv
+      extra_metadata_csv: ./data/mimic_cxr_jpg/mimic-cxr-2.0.0-metadata.csv
+      extra_metadata_join_cols: [subject_id, study_id, dicom_id]
+      image_root: ./data/mimic_cxr_jpg
+      path_col: path
+      patient_id_col: subject_id
+      study_id_col: study_id
+      dicom_id_col: dicom_id
+      view_col: ViewPosition
+      study_date_col: StudyDate
+      study_time_col: StudyTime
+      performed_procedure_step_description_col: PerformedProcedureStepDescription
+      procedure_code_meaning_col: ProcedureCodeSequence_CodeMeaning
+      view_code_meaning_col: ViewCodeSequence_CodeMeaning
+      patient_orientation_code_meaning_col: PatientOrientationCodeSequence_CodeMeaning
+      rows_col: Rows
+      columns_col: Columns
+      label_cols:
+        - No Finding
+        - Enlarged Cardiomediastinum
+        - Cardiomegaly
+        - Lung Opacity
+        - Lung Lesion
+        - Edema
+        - Consolidation
+        - Pneumonia
+        - Atelectasis
+        - Pneumothorax
+        - Pleural Effusion
+        - Pleural Other
+        - Fracture
+        - Support Devices
+  split_group_key: global_patient_id
+  index_dir: ./data_indexes/mimic_public_acquisition_atomic_clip_headsubspace_k4
+  cache_dir: ./cache/mimic_public_acquisition_atomic_clip_headsubspace_k4
+
+model:
+  architecture: clip-vit-base-patch32
+  family: transformer
+  num_classes: 14
+  use_medical_pretrain: true
+  encoder:
+    encoder_source: hf_clip_or_vit
+    model_id: openai/clip-vit-base-patch32
+    revision: 3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268
+    head_path: ./outputs/paperpilot_mimic_artifacts/heads/head.pt
+    head_meta_path: ./outputs/paperpilot_mimic_artifacts/heads/head_meta.json
+    input_adapter:
+      repeat_to_3: true
+      image_size: 224
+      mean: [0.48145466, 0.4578275, 0.40821073]
+      std: [0.26862954, 0.26130258, 0.27577711]
+
+intervention:
+  shift_types: [heel, scatter]
+  intensity_grid: [0.0, 0.2, 0.4, 0.6]
+  use_realism: true
+  realism_path: ./outputs/clip_base_patch32_mainline/realism/realism_calibrator.json
+  realism_levels: [0.0, 0.5, 1.0]
+  pair_mode: temporal_same_view
+  group_key: global_patient_id
+
+eraser:
+  fit_mode: one_eraser_per_shift_family
+  task_preserve: head_subspace
+  task_subspace_k: 4
+  logit_recovery_weight: 0.0
+  prob_recovery_weight: 0.0
+  clean_identity_weight: 0.0
+
+erasure_eval:
+  scenario_mode: atomic_calibrated_eval
+  shift_types: [heel, scatter]
+  modes: [clinical, causal_invariance, safety]
+  fairness_groups: []
+
+shift_id:
+  group_key: view_family
+
+safety_policy:
+  stratify_technical: true
+  strata_keys: [view_family, procedure_context, orientation_context]
+
+runtime:
+  device: cpu
+  seed: 2026
+
+output:
+  root: ./outputs/mimic_public_acquisition_atomic_clip_headsubspace_k4
+  run_name: atomic_clip_headsubspace_k4

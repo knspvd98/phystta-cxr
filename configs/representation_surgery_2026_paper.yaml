@@ -1,0 +1,366 @@
+# Historical credentialed paper-tier config with device/station semantics.
+# Not the canonical public-MIMIC acquisition-context mainline.
+data:
+  prebuilt_index_csv: data_indexes/mini_index.csv
+  prebuilt_index_sha256: fa1d2603cdbc507463c3cef30010ca1298a3747eccebfcb0396981323cd2a96d
+  sources:
+  - name: mimic
+    root: /data/mimic-cxr-jpg
+    metadata_csv: null
+    label_cols:
+    - No Finding
+    - Enlarged Cardiomediastinum
+    - Cardiomegaly
+    - Lung Opacity
+    - Lung Lesion
+    - Edema
+    - Consolidation
+    - Pneumonia
+    - Atelectasis
+    - Pneumothorax
+    - Pleural Effusion
+    - Pleural Other
+    - Fracture
+    - Support Devices
+  preprocess:
+    image_size: 224
+    normalize_mean: 0.0
+    normalize_std: 1.0
+  model_representation: intensity
+  split_fractions:
+    train_head: 0.45
+    val_head: 0.05
+    train_eraser: 0.2
+    calib: 0.1
+    eval: 0.2
+  split_group_key: global_patient_id
+  head_split: train_head
+  head_val_split: val_head
+  eraser_split: train_eraser
+  calib_split: calib
+  eval_split: eval
+model:
+  architecture: clip-vit-base-patch32
+  family: transformer
+  num_classes: 14
+  use_medical_pretrain: true
+  encoder:
+    encoder_source: hf_clip_or_vit
+    model_id: openai/clip-vit-base-patch32
+    revision: 3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268
+    head_path: outputs/heads/clip_head.pt
+    input_adapter:
+      repeat_to_3: true
+      image_size: 224
+      mean:
+      - 0.48145466
+      - 0.4578275
+      - 0.40821073
+      std:
+      - 0.26862954
+      - 0.26130258
+      - 0.27577711
+  encoder_profiles:
+  - name: baseline_cnn
+    encoder:
+      encoder_source: baseline_cnn
+      architecture: densenet121
+      pretrained: false
+      encoder_path: outputs/weights/baseline_cnn_densenet121.pt
+      head_attr: head
+      input_adapter:
+        repeat_to_3: false
+        image_size: 224
+        mean:
+        - 0.5
+        std:
+        - 0.5
+  - name: baseline_cnn_resnet50
+    encoder:
+      encoder_source: baseline_cnn
+      architecture: resnet50
+      pretrained: false
+      encoder_path: outputs/weights/baseline_cnn_resnet50.pt
+      head_attr: head
+      input_adapter:
+        repeat_to_3: false
+        image_size: 224
+        mean:
+        - 0.5
+        std:
+        - 0.5
+  - name: hf_vit
+    encoder:
+      encoder_source: hf_clip_or_vit
+      model_id: google/vit-base-patch16-224-in21k
+      revision: b4569560a39a0f1af58e3ddaf17facf20ab919b0
+      head_path: outputs/heads/hf_vit_head.pt
+      input_adapter:
+        repeat_to_3: true
+        image_size: 224
+        mean:
+        - 0.5
+        - 0.5
+        - 0.5
+        std:
+        - 0.5
+        - 0.5
+        - 0.5
+  - name: hf_vit_large
+    encoder:
+      encoder_source: hf_clip_or_vit
+      model_id: google/vit-large-patch16-224-in21k
+      revision: 9f4f4e29d2396a3d9dbe4f0b4bba6d5ab6f2df8d
+      head_path: outputs/heads/hf_vit_large_head.pt
+      input_adapter:
+        repeat_to_3: true
+        image_size: 224
+        mean:
+        - 0.5
+        - 0.5
+        - 0.5
+        std:
+        - 0.5
+        - 0.5
+        - 0.5
+  - name: hf_clip_or_vit
+    encoder:
+      encoder_source: hf_clip_or_vit
+      model_id: openai/clip-vit-base-patch32
+      revision: 3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268
+      head_path: outputs/heads/clip_head.pt
+      input_adapter:
+        repeat_to_3: true
+        image_size: 224
+        mean:
+        - 0.48145466
+        - 0.4578275
+        - 0.40821073
+        std:
+        - 0.26862954
+        - 0.26130258
+        - 0.27577711
+  - name: hf_clip_large_patch14
+    encoder:
+      encoder_source: hf_clip_or_vit
+      model_id: openai/clip-vit-large-patch14
+      revision: 63adf8b4d69b442420ca84d3f8f56f4a4dc76e36
+      head_path: outputs/heads/clip_large_head.pt
+      input_adapter:
+        repeat_to_3: true
+        image_size: 224
+        mean:
+        - 0.48145466
+        - 0.4578275
+        - 0.40821073
+        std:
+        - 0.26862954
+        - 0.26130258
+        - 0.27577711
+train:
+  batch_size: 16
+  epochs: 1
+runtime:
+  device: cuda
+  seed: 2024
+  deterministic: true
+  benchmark: false
+  freeze_artifacts: true
+  allow_download: false
+output:
+  root: ./outputs
+  run_name: representation_surgery_2026
+intervention:
+  shift_types:
+  - heel
+  - scatter
+  - exposure
+  - poisson
+  - mixed
+  intensity_grid:
+  - 0.0
+  mixed_profiles:
+  - name: scatter_heel
+    components:
+      scatter: 0.6
+      heel: 0.3
+  - name: exposure_poisson
+    components:
+      exposure: 0.4
+      poisson: 0.2
+  max_images: 200
+  token_budget: 100000
+  probe_chunk_size: 20000
+  token_sampling: random
+  token_sample_per_image: 64
+  use_realism: true
+  realism_path: outputs/representation_surgery/realism_calibrator.json
+  realism_levels:
+  - 0.0
+  - 0.5
+  - 1.0
+  k: 8
+  fit_method: probe_xfit
+  probe_target: presence
+  group_key: global_patient_id
+  pair_quality:
+    max_delta_hours: 24.0
+    label_change_weight: 0.45
+    view_change_weight: 0.2
+    context_change_weight: 0.2
+    sentinel_change_weight: 0.15
+    technical_dominant_max_risk: 0.25
+eraser:
+  type: steering
+  task_preserve: head_subspace
+  k: 8
+  steering_hidden: 256
+  steering_steps: 200
+  steering_lr: 0.001
+  steering_eps: 0.01
+  token_mode: patch
+  token_layers: 2
+  online_enabled: false
+  online_mode: entropy
+  online_entropy_steps: 8
+  online_entropy_lr: 0.01
+erasure_eval:
+  split: eval
+  shift_types:
+  - heel
+  - mixed
+  intensity_grid:
+  - 0.0
+  modes:
+  - clinical
+  - probing
+  - causal_invariance
+  - safety
+  - fairness
+  coverage: 0.8
+  fairness_groups:
+  - sex
+  - race
+  - age
+metrics:
+  calibration_bins: 15
+  min_group_size: 50
+shift_id:
+  label_space: nature
+  group_key: manufacturer
+  score_family:
+  - mmd
+  - ks
+  - cond_mmd
+  batch_sizes:
+  - 100
+  - 250
+  - 500
+  n_splits: 3
+  calibration: temperature
+  cost_matrix:
+    none:
+      none: 0
+      covariate: 1
+      prevalence: 1
+      mixed: 2
+    covariate:
+      none: 1
+      covariate: 0
+      prevalence: 2
+      mixed: 5
+    prevalence:
+      none: 1
+      covariate: 2
+      prevalence: 0
+      mixed: 3
+    mixed:
+      none: 2
+      covariate: 2
+      prevalence: 2
+      mixed: 0
+safety_policy:
+  apply_on_covariate: true
+  abstain_on_mixed: true
+  abstain_on_unknown: true
+  use_decision_policy: true
+  uncertainty_abstain_threshold: 0.35
+  mixed_abstain_threshold: 0.4
+  prevalence_action: recalibrate
+  cost_fn: 10.0
+  cost_fp: 1.0
+  coverage_budget: 0.8
+  critical_labels: []
+  conformal: true
+  risk_target: 0.05
+  conformal_alpha: 0.05
+  shared_threshold: true
+  stratify_technical: true
+  strata_keys:
+  - manufacturer
+  - station_name
+  - view
+monitoring:
+  enabled: false
+  warmup_batches: 10
+  alert_quantile: 0.99
+  min_consecutive_alerts: 2
+  scores:
+  - mmd
+  - ks
+  - cond_mmd
+vlm:
+  enabled: false
+  model_type: llava
+  model_id: null
+  model_path: null
+  prompt_template: Return JSON with keys for each pathology in the dataset.
+  uncertain_value: 0.5
+experiment:
+  tier: paper
+architecture_study:
+  encoder_profiles:
+  - baseline_cnn
+  - baseline_cnn_resnet50
+  - hf_vit
+  - hf_vit_large
+  - hf_clip_or_vit
+  - hf_clip_large_patch14
+  interventions:
+  - erasure
+  - policy
+  modes:
+  - clinical
+  - safety
+  - fairness
+  - causal_invariance
+  interaction_pairs:
+  - - no_eraser
+    - eraser
+  profile_tags:
+    baseline_cnn:
+      paradigm: CNN
+      pretraining: ImageNet/Medical
+      training_regime: fine_tune
+    baseline_cnn_resnet50:
+      paradigm: CNN
+      pretraining: ImageNet/Medical
+      training_regime: fine_tune
+    hf_vit:
+      paradigm: ViT
+      pretraining: ImageNet
+      training_regime: fine_tune
+    hf_vit_large:
+      paradigm: ViT
+      pretraining: ImageNet
+      training_regime: fine_tune
+    hf_clip_or_vit:
+      paradigm: CLIP/Foundation
+      pretraining: Foundation
+      training_regime: zero_shot_or_linear_head
+    hf_clip_large_patch14:
+      paradigm: CLIP/Foundation
+      pretraining: Foundation
+      training_regime: zero_shot_or_linear_head
+  reporting:
+    clean_intensity: 0.0

@@ -1,0 +1,74 @@
+# External VinDr-CXR sanity branch.
+# Current role: reproducible classification/localization scaffold only.
+# This config is not a temporal realism, device robustness, or demographic fairness contour.
+# Any projection from VinDr native labels into the 14-label head space must be read through an explicit manifest.
+# This template is intended for same-pod follow-up after a successful CLIP-lineage internal run.
+# The model subtree may still be replaced by scripts/materialize_external_followup_configs.py,
+# but the default operator-facing contract should already match the current CLIP frozen-artifact line.
+data:
+  sources:
+    - name: vindr
+      root: /workspace/data/vindr_cxr
+      metadata_csv: /workspace/data/vindr_cxr/train.csv
+      image_root: /workspace/data/vindr_cxr
+      path_col: image_id
+      patient_id_col: image_id
+      label_cols:
+        - Aortic enlargement
+        - Atelectasis
+        - Calcification
+        - Cardiomegaly
+        - Consolidation
+        - ILD
+        - Infiltration
+        - Lung Opacity
+        - Nodule/Mass
+        - Other lesion
+        - Pleural effusion
+        - Pleural thickening
+        - Pneumothorax
+        - Pulmonary fibrosis
+      supports_boxes: true
+      supports_temporal_pairs: false
+      supports_demographics: false
+      supports_device_metadata: false
+  split_group_key: global_patient_id
+  index_dir: /workspace/outputs/vindr_external_localization/index_runtime
+  cache_dir: /workspace/.cache/phystta/vindr_external_localization
+model:
+  architecture: clip-vit-base-patch32
+  family: transformer
+  num_classes: 14
+  use_medical_pretrain: true
+  encoder:
+    encoder_source: hf_clip_or_vit
+    model_id: openai/clip-vit-base-patch32
+    revision: 3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268
+    head_path: /workspace/outputs/paperpilot_mimic_artifacts/heads/head.pt
+    head_meta_path: /workspace/outputs/paperpilot_mimic_artifacts/heads/head_meta.json
+    input_adapter:
+      repeat_to_3: true
+      image_size: 224
+      mean: [0.48145466, 0.4578275, 0.40821073]
+      std: [0.26862954, 0.26130258, 0.27577711]
+intervention:
+  shift_types: [none]
+  use_realism: false
+  group_key: global_patient_id
+erasure_eval:
+  scenario_mode: atomic_calibrated_eval
+  shift_types: [none]
+  modes: [clinical]
+  fairness_groups: []
+shift_id:
+  group_key: source
+safety_policy:
+  stratify_technical: false
+runtime:
+  device: cpu
+  seed: 2026
+  freeze_artifacts: true
+  allow_download: false
+output:
+  root: /workspace/outputs/vindr_external_localization
+  run_name: vindr_external

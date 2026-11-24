@@ -1,0 +1,74 @@
+# Canonical mixed stress contour for public MIMIC.
+# This contour is intentionally separate from calibrated atomic evaluation and does not run real-pair realism calibration.
+data:
+  sources:
+    - name: mimic
+      root: /workspace/data/mimic-cxr-jpg
+      metadata_csv: /workspace/data/mimic-cxr-jpg/mimic-cxr-2.0.0-chexpert.csv
+      extra_metadata_csv: /workspace/data/mimic-cxr-jpg/mimic-cxr-2.0.0-metadata.csv
+      extra_metadata_join_cols: [subject_id, study_id, dicom_id]
+      image_root: /workspace/data/mimic-cxr-jpg
+      path_col: path
+      patient_id_col: subject_id
+      study_id_col: study_id
+      dicom_id_col: dicom_id
+      view_col: ViewPosition
+      study_date_col: StudyDate
+      study_time_col: StudyTime
+      performed_procedure_step_description_col: PerformedProcedureStepDescription
+      procedure_code_meaning_col: ProcedureCodeSequence_CodeMeaning
+      view_code_meaning_col: ViewCodeSequence_CodeMeaning
+      patient_orientation_code_meaning_col: PatientOrientationCodeSequence_CodeMeaning
+      rows_col: Rows
+      columns_col: Columns
+      label_cols: [No Finding, Edema, Consolidation, Atelectasis, Pneumothorax, Pleural Effusion]
+  split_group_key: global_patient_id
+  index_dir: /workspace/outputs/mimic_public_mixed_stress/index_runtime
+  cache_dir: /workspace/.cache/phystta/mimic_public_mixed_stress
+model:
+  architecture: densenet121
+  num_classes: 6
+  in_chans: 1
+  family: cnn
+  encoder:
+    encoder_source: baseline_cnn
+    architecture: densenet121
+    pretrained: false
+    head_path: /workspace/outputs/heads/mimic_public_atomic_head.pt
+    head_meta_path: /workspace/outputs/heads/mimic_public_atomic_head.meta.json
+intervention:
+  shift_types: [mixed]
+  use_realism: false
+  mixed_profiles:
+    - name: portable_combo
+      components:
+        heel: 0.35
+        exposure: 0.25
+        poisson: 0.15
+    - name: low_dose_bedside
+      components:
+        scatter: 0.30
+        exposure: 0.40
+        poisson: 0.25
+  pair_mode: temporal_same_view
+  group_key: global_patient_id
+eraser:
+  fit_mode: one_eraser_per_shift_family
+erasure_eval:
+  scenario_mode: mixed_stress_eval
+  shift_types: [mixed]
+  modes: [clinical, safety]
+  fairness_groups: []
+shift_id:
+  group_key: view_family
+safety_policy:
+  stratify_technical: true
+  strata_keys: [view_family, procedure_context, orientation_context]
+runtime:
+  device: cpu
+  seed: 2026
+  freeze_artifacts: true
+  allow_download: false
+output:
+  root: /workspace/outputs/mimic_public_mixed_stress
+  run_name: mixed_stress

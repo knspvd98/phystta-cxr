@@ -1,0 +1,127 @@
+# LEGACY / NON-CANONICAL PODRUN CONFIG
+# This file is preserved only for historical compatibility.
+# It is NOT the canonical entrypoint for the first bounded RunPod cycle.
+# The canonical first-cycle operator-facing contract is defined by:
+# - docs/canonical_public_mimic_experiment_contract.md
+# - docs/canonical_clip_bounded_runpod_packet.md
+# and uses the CLIP-lineage six-config bounded family instead.
+
+data:
+  sources:
+  - name: mimic
+    root: /workspace/data/mimic-cxr-jpg
+    metadata_csv: ./data/mimic_cxr_jpg/mimic-cxr-2.0.0-chexpert.csv
+    extra_metadata_csv: ./data/mimic_cxr_jpg/mimic-cxr-2.0.0-metadata.csv
+    extra_metadata_join_cols:
+    - subject_id
+    - study_id
+    - dicom_id
+    image_root: /workspace/data/mimic-cxr-jpg
+    path_col: path
+    patient_id_col: subject_id
+    study_id_col: study_id
+    dicom_id_col: dicom_id
+    view_col: ViewPosition
+    study_date_col: StudyDate
+    study_time_col: StudyTime
+    performed_procedure_step_description_col: PerformedProcedureStepDescription
+    procedure_code_meaning_col: ProcedureCodeSequence_CodeMeaning
+    view_code_meaning_col: ViewCodeSequence_CodeMeaning
+    patient_orientation_code_meaning_col: PatientOrientationCodeSequence_CodeMeaning
+    rows_col: Rows
+    columns_col: Columns
+    label_cols:
+    - No Finding
+    - Enlarged Cardiomediastinum
+    - Cardiomegaly
+    - Lung Opacity
+    - Lung Lesion
+    - Edema
+    - Consolidation
+    - Pneumonia
+    - Atelectasis
+    - Pneumothorax
+    - Pleural Effusion
+    - Pleural Other
+    - Fracture
+    - Support Devices
+  split_group_key: global_patient_id
+  index_dir: /workspace/outputs/bounded_mimic_atomic/index_runtime
+  cache_dir: /workspace/.cache/phystta
+  prebuilt_index_csv: /workspace/outputs/paperpilot_mimic_fullindex_debug/mimic_index_fullresolved_enriched.csv
+  prebuilt_index_sha256: fb41dbd606a4e9dfdf7ff3adf381d30b2f886ded0c0290cffb25df21027c54bd
+  split_fractions:
+    train_head: 0.5
+    train_eraser: 0.2
+    calib: 0.1
+    eval: 0.2
+  head_split: train_head
+  eraser_split: train_eraser
+  calib_split: calib
+  eval_split: eval
+model:
+  architecture: densenet121
+  num_classes: 14
+  in_chans: 1
+  family: cnn
+  use_medical_pretrain: false
+  encoder:
+    encoder_source: baseline_cnn
+    architecture: densenet121
+    pretrained: false
+    head_path: /workspace/outputs/heads/mimic_public_atomic_head.pt
+    head_meta_path: /workspace/outputs/heads/mimic_public_atomic_head.meta.json
+intervention:
+  shift_types: &id001
+  - heel
+  - scatter
+  intensity_grid:
+  - 0.0
+  - 0.2
+  - 0.4
+  - 0.6
+  use_realism: true
+  realism_path: ./outputs/mimic_public_acquisition_atomic/realism/realism_calibrator.json
+  realism_levels:
+  - 0.0
+  - 0.5
+  - 1.0
+  pair_mode: temporal_same_view
+  group_key: global_patient_id
+eraser:
+  fit_mode: one_eraser_per_shift_family
+  task_preserve: none
+erasure_eval:
+  scenario_mode: atomic_calibrated_eval
+  shift_types: *id001
+  modes:
+  - clinical
+  - causal_invariance
+  - safety
+  fairness_groups:
+  - view_family
+shift_id:
+  group_key: view_family
+  label_space: physics
+safety_policy:
+  stratify_technical: true
+  strata_keys:
+  - view_family
+  apply_on_covariate: true
+  abstain_on_mixed: true
+  abstain_on_unknown: true
+  use_decision_policy: true
+  uncertainty_abstain_threshold: 0.35
+  mixed_abstain_threshold: 0.4
+  prevalence_action: recalibrate
+  abstain_cost: 1.0
+runtime:
+  device: cuda
+  seed: 2026
+output:
+  root: /workspace/outputs/bounded_mimic_atomic
+  run_name: legacy_atomic_podrun_noncanonical
+train:
+  num_workers: 8
+  batch_size: 32
+  mixed_precision: true

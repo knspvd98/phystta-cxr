@@ -1,0 +1,83 @@
+# Canonical public-MIMIC atomic acquisition-context path.
+# This is the nopreserve baseline for calibrated atomic evaluation under public metadata.
+data:
+  sources:
+    - name: mimic
+      root: /workspace/data/mimic-cxr-jpg
+      metadata_csv: /workspace/data/mimic-cxr-jpg/mimic-cxr-2.0.0-chexpert.csv
+      extra_metadata_csv: /workspace/data/mimic-cxr-jpg/mimic-cxr-2.0.0-metadata.csv
+      extra_metadata_join_cols: [subject_id, study_id, dicom_id]
+      image_root: /workspace/data/mimic-cxr-jpg
+      path_col: path
+      patient_id_col: subject_id
+      study_id_col: study_id
+      dicom_id_col: dicom_id
+      view_col: ViewPosition
+      study_date_col: StudyDate
+      study_time_col: StudyTime
+      performed_procedure_step_description_col: PerformedProcedureStepDescription
+      procedure_code_meaning_col: ProcedureCodeSequence_CodeMeaning
+      view_code_meaning_col: ViewCodeSequence_CodeMeaning
+      patient_orientation_code_meaning_col: PatientOrientationCodeSequence_CodeMeaning
+      rows_col: Rows
+      columns_col: Columns
+      label_cols:
+        - No Finding
+        - Enlarged Cardiomediastinum
+        - Cardiomegaly
+        - Lung Opacity
+        - Lung Lesion
+        - Edema
+        - Consolidation
+        - Pneumonia
+        - Atelectasis
+        - Pneumothorax
+        - Pleural Effusion
+        - Pleural Other
+        - Fracture
+        - Support Devices
+  split_group_key: global_patient_id
+  index_dir: /workspace/outputs/mimic_public_acquisition_atomic/index_runtime
+  cache_dir: /workspace/.cache/phystta/mimic_public_acquisition_atomic
+model:
+  architecture: densenet121
+  num_classes: 14
+  in_chans: 1
+  family: cnn
+  use_medical_pretrain: false
+  encoder:
+    encoder_source: baseline_cnn
+    architecture: densenet121
+    pretrained: false
+    head_path: /workspace/outputs/heads/mimic_public_atomic_head.pt
+    head_meta_path: /workspace/outputs/heads/mimic_public_atomic_head.meta.json
+intervention:
+  # Canonical atomic family keeps heel/scatter and moves dose-noise realism to the coupled path.
+  shift_types: [heel, scatter, exposure_poisson, motion_blur]
+  intensity_grid: [0.0, 0.2, 0.4, 0.6]
+  use_realism: true
+  realism_path: /workspace/outputs/mimic_public_acquisition_atomic/realism/realism_calibrator.json
+  realism_levels: [0.0, 0.5, 1.0]
+  pair_mode: temporal_same_view
+  group_key: global_patient_id
+eraser:
+  fit_mode: one_eraser_per_shift_family
+  task_preserve: none
+erasure_eval:
+  scenario_mode: atomic_calibrated_eval
+  shift_types: [heel, scatter, exposure_poisson, motion_blur]
+  modes: [clinical, causal_invariance, safety]
+  fairness_groups: []
+shift_id:
+  group_key: view_family
+safety_policy:
+  stratify_technical: true
+  strata_keys: [view_family, procedure_context, orientation_context]
+runtime:
+  allow_download: false
+  device: cpu
+  freeze_artifacts: true
+  seed: 2026
+output:
+  root: /workspace/outputs/mimic_public_acquisition_atomic
+  run_name: atomic_mainline

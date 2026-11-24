@@ -1,0 +1,118 @@
+# Historical credentialed device-metadata config.
+# Do not use this as the public MIMIC-CXR-JPG mainline; public acquisition-context configs live under configs/mimic_public_*.
+data:
+  sources:
+    - name: mimic
+      root: /data/mimic-cxr-jpg
+      metadata_csv: null
+      label_cols: ["No Finding","Enlarged Cardiomediastinum","Cardiomegaly","Lung Opacity","Lung Lesion","Edema","Consolidation","Pneumonia","Atelectasis","Pneumothorax","Pleural Effusion","Pleural Other","Fracture","Support Devices"]
+  train_sources: ["mimic"]
+  val_sources: ["mimic"]
+  test_sources: ["mimic"]
+  preprocess:
+    image_size: 224
+    normalize_mean: 0.0
+    normalize_std: 1.0
+  model_representation: intensity
+  split_fractions:
+    train_head: 0.5
+    train_eraser: 0.2
+    calib: 0.1
+    eval: 0.2
+  split_group_key: global_patient_id
+  head_split: train_head
+  eraser_split: train_eraser
+  calib_split: calib
+  eval_split: eval
+model:
+  architecture: clip-vit-base-patch32
+  family: transformer
+  num_classes: 14
+  use_medical_pretrain: false
+  encoder:
+    encoder_source: hf_clip_or_vit
+    model_id: openai/clip-vit-base-patch32
+    encoder_path: null
+    head_path: outputs/heads/clip_head.pt
+    head_attr: null
+    input_adapter:
+      repeat_to_3: true
+      image_size: 224
+      mean: [0.48145466, 0.4578275, 0.40821073]
+      std: [0.26862954, 0.26130258, 0.27577711]
+train:
+  batch_size: 16
+  epochs: 1
+runtime:
+  device: cpu
+  seed: 2024
+  allow_download: true
+output:
+  root: ./outputs
+  run_name: representation_surgery
+intervention:
+  shift_types: ["heel"]
+  intensity_grid: [0.0, 0.3, 0.6]
+  use_realism: true
+  realism_path: outputs/representation_surgery/realism_calibrator.json
+  realism_levels: [0.0, 0.5, 1.0]
+  max_images: 200
+  token_budget: 100000
+  probe_chunk_size: 20000
+  token_sampling: random
+  token_sample_per_image: 64
+  k: 8
+  fit_method: probe_xfit
+  probe_target: presence
+  group_key: global_patient_id
+  pair_quality:
+    max_delta_hours: 24.0
+    label_change_weight: 0.45
+    view_change_weight: 0.20
+    context_change_weight: 0.20
+    sentinel_change_weight: 0.15
+    technical_dominant_max_risk: 0.25
+eraser:
+  type: steering
+  task_preserve: head_subspace
+  k: 8
+  steering_hidden: 256
+  steering_steps: 200
+  steering_lr: 0.001
+  steering_eps: 0.01
+  token_mode: patch
+  token_layers: 2
+  online_enabled: false
+  online_mode: entropy
+  online_entropy_steps: 8
+  online_entropy_lr: 0.01
+erasure_eval:
+  split: eval
+  shift_types: ["heel"]
+  intensity_grid: [0.0, 0.3, 0.6]
+  modes: [clinical, probing, causal_invariance, safety, fairness]
+  coverage: 0.8
+  fairness_groups: [sex, race, age]
+safety_policy:
+  use_decision_policy: true
+  uncertainty_abstain_threshold: 0.35
+  mixed_abstain_threshold: 0.40
+  prevalence_action: recalibrate
+shift_id:
+  label_space: nature
+  group_key: manufacturer
+monitoring:
+  enabled: false
+  warmup_batches: 10
+  alert_quantile: 0.99
+  min_consecutive_alerts: 2
+  scores: [mmd, ks, cond_mmd]
+vlm:
+  enabled: false
+  model_type: llava
+  model_id: null
+  model_path: /path/to/local/llava
+  prompt_template: "Return JSON with keys for each pathology in the dataset."
+  uncertain_value: 0.5
+experiment:
+  tier: dev

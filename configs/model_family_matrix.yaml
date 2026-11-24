@@ -1,0 +1,129 @@
+shared_contract:
+  dataset_id: mimic_public_acquisition
+  label_space: chexpert14
+  group_key: global_patient_id
+  shift_protocol: bounded_headsubspace_atomic
+  atomic_families: [heel, scatter]
+  runtime_allow_download: false
+  reference_family: clip_base_patch32_mainline
+
+families:
+  clip_base_patch32_mainline:
+    enabled: true
+    wave: 1
+    comparison_bucket: clip_like
+    encoder_source: hf_clip_or_vit
+    encoder_profile: hf_clip_or_vit
+    model_id: openai/clip-vit-base-patch32
+    revision: 3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268
+    runtime_mode: classifier
+    head_policy: reuse_resolved_head
+    requires_new_head: false
+    requires_classifier_head: true
+    requires_local_encoder_path: false
+    eligible_for_intervention_mainline: true
+    eligible_for_shift_benchmark: true
+
+  vit_base_patch16_in21k:
+    enabled: true
+    wave: 1
+    comparison_bucket: vit_like
+    encoder_source: hf_clip_or_vit
+    encoder_profile: hf_vit
+    model_id: google/vit-base-patch16-224-in21k
+    revision: b4569560a39a0f1af58e3ddaf17facf20ab919b0
+    runtime_mode: classifier
+    head_policy: train_new_head
+    requires_new_head: true
+    requires_classifier_head: true
+    requires_local_encoder_path: false
+    eligible_for_intervention_mainline: true
+    eligible_for_shift_benchmark: true
+
+  cnn_densenet121:
+    enabled: true
+    wave: 1
+    comparison_bucket: cnn
+    encoder_source: baseline_cnn
+    encoder_profile: baseline_cnn
+    runtime_mode: classifier
+    head_policy: train_new_head
+    requires_new_head: true
+    requires_classifier_head: true
+    requires_local_encoder_path: true
+    bootstrap_source: existing_cache_bootstrap
+    eligible_for_intervention_mainline: true
+    eligible_for_shift_benchmark: true
+
+  cnn_resnet50:
+    enabled: true
+    wave: 1
+    comparison_bucket: cnn
+    encoder_source: baseline_cnn
+    encoder_profile: baseline_cnn_resnet50
+    runtime_mode: classifier
+    head_policy: train_new_head
+    requires_new_head: true
+    requires_classifier_head: true
+    requires_local_encoder_path: true
+    bootstrap_source: existing_cache_bootstrap
+    eligible_for_intervention_mainline: true
+    eligible_for_shift_benchmark: true
+
+  eva_x_local:
+    enabled: false
+    wave: 2
+    comparison_bucket: cxr_foundation
+    encoder_source: eva_x
+    runtime_mode: classifier
+    head_policy: train_new_head
+    requires_new_head: true
+    requires_classifier_head: true
+    requires_local_encoder_path: true
+    eligible_for_intervention_mainline: false
+    eligible_for_shift_benchmark: false
+    blocked_reason: local weight contract not yet materialized for EVA-X.
+
+  chexfound_local:
+    enabled: false
+    wave: 2
+    comparison_bucket: cxr_foundation
+    encoder_source: chexfound
+    runtime_mode: classifier
+    head_policy: train_new_head
+    requires_new_head: true
+    requires_classifier_head: true
+    requires_local_encoder_path: true
+    eligible_for_intervention_mainline: false
+    eligible_for_shift_benchmark: false
+    blocked_reason: local weight contract not yet materialized for CheXFound.
+
+  biomedclip_openclip:
+    enabled: false
+    wave: 2
+    comparison_bucket: biomedical_contrastive
+    encoder_source: openclip
+    runtime_mode: classifier
+    head_policy: train_new_head
+    requires_new_head: true
+    requires_classifier_head: true
+    requires_local_encoder_path: false
+    requires_prebootstrap_contract: true
+    eligible_for_intervention_mainline: false
+    eligible_for_shift_benchmark: false
+    blocked_reason: exact offline openclip bootstrap contract not yet pinned.
+
+  llava_rad_sidecar:
+    enabled: false
+    wave: 3
+    comparison_bucket: vlm
+    encoder_source: llava_rad_encoder
+    runtime_mode: sidecar_only
+    head_policy: no_classifier_head
+    requires_new_head: false
+    requires_classifier_head: false
+    requires_local_encoder_path: true
+    requires_paired_text_assets: true
+    eligible_for_intervention_mainline: false
+    eligible_for_shift_benchmark: false
+    blocked_reason: local weights and report-side evaluation assets missing.
