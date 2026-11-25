@@ -10,6 +10,7 @@ from typing import Any, Dict
 import pandas as pd
 
 from phystta.config.loader import load_config
+from phystta.utils.io import metric_report_json
 
 
 def _sha256(path: Path) -> str:
@@ -320,7 +321,7 @@ def main() -> None:
         "artifact_presence": required_artifacts,
         "missing_artifacts": missing,
         "summaries": {
-            "erasure": _summary_from_metrics(er_metrics, ["auroc_macro", "auprc_macro", "expected_harm"]),
+            "erasure": _summary_from_metrics(er_metrics, ["auroc_macro", "auprc_macro", "expected_harm", "ece", "brier"]),
             "fairness": _summary_from_metrics(er_fairness, ["fnr_gap_macro", "worst_group_auroc_macro", "ece_gap"]),
             "causal": _summary_from_metrics(er_causal, ["flip_rate", "js_div", "sensitivity_slope"]),
             "safety": _summary_from_metrics(sa_metrics, ["coverage", "expected_harm", "risk_at_coverage", "ece"]),
@@ -366,7 +367,7 @@ def main() -> None:
         report["paper_gate"]["run_mode"] = "open_data_fallback"
         report["paper_gate"]["message"] = "Open-data fallback runs are not full credentialed paper-tier validations."
 
-    (out_dir / "paper_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    (out_dir / "paper_report.json").write_text(metric_report_json(report), encoding="utf-8")
     print(f"Saved consolidated report: {out_dir / 'paper_report.json'}")
 
 

@@ -65,11 +65,13 @@ def risk_coverage_inputs_multilabel(
     preds = (p >= th[None, :]).astype(int)
     fn = ((preds == 0) & (y == 1) & valid).astype(float)
     fp = ((preds == 1) & (y == 0) & valid).astype(float)
-    denom = np.maximum(valid.sum(axis=1), 1)
-    sample_error = (cost_fn * fn.sum(axis=1) + cost_fp * fp.sum(axis=1)) / denom
-    conf = np.maximum(p, 1.0 - p)
-    sample_conf = np.mean(np.where(valid, conf, np.nan), axis=1)
-    sample_conf = np.where(np.isfinite(sample_conf), sample_conf, 0.5)
+    count = valid.sum(axis=1)
+    observed = count > 0
+    harm = cost_fn * fn.sum(axis=1) + cost_fp * fp.sum(axis=1)
+    confidence = np.where(valid, np.maximum(p, 1.0 - p), 0.0).sum(axis=1)
+    # Keep row alignment with patient IDs for cluster bootstrap resampling.
+    sample_error = np.divide(harm, count, out=np.full(count.shape, np.nan), where=observed)
+    sample_conf = np.divide(confidence, count, out=np.full(count.shape, np.nan), where=observed)
     return sample_error, sample_conf
 
 

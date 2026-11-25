@@ -9,6 +9,7 @@ import numpy as np
 import torch
 
 from phystta.config.loader import load_config
+from phystta.utils.io import metric_report_json
 from phystta.data import DataEngine, canonical_external_label_space, harmonize_external_labels
 from phystta.shifts import ShiftManager
 from phystta.models import EncoderFactory, build_encoder_fingerprint, load_head_meta, validate_head_meta
@@ -880,14 +881,13 @@ def main() -> None:
                     rec[f"{col}_{stat}"] = float(r[(col, stat)])
             rows_target.append(rec)
         (out_dir / "external_policy_operating_points_targeted_summary.json").write_text(
-            json.dumps(
+            metric_report_json(
                 {
                     "n_rows": int(len(op_target_df)),
                     "target_sensitivities": [float(v) for v in target_sensitivities],
                     "target_specificities": [float(v) for v in target_specificities],
                     "drift_stats": rows_target,
-                },
-                indent=2,
+                }
             )
         )
     summary = regret_by_shift(
@@ -935,17 +935,16 @@ def main() -> None:
             "regret_boot_n_clusters": int(boot_overall["n_clusters"]),
         }
     )
-    (out_dir / "external_policy_regret_summary.json").write_text(json.dumps(summary, indent=2))
+    (out_dir / "external_policy_regret_summary.json").write_text(metric_report_json(summary))
     (out_dir / "external_policy_regret_decomposition.json").write_text(
-        json.dumps(
+        metric_report_json(
             {
                 "bootstrap_ci": {
                     "overall": boot_overall,
                     "by_shift": boot_by_shift,
                     "by_action": boot_by_action,
                 }
-            },
-            indent=2,
+            }
         )
     )
     write_reprovenance_bundle(
