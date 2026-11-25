@@ -1,4 +1,5 @@
 import json
+import math
 import hashlib
 import subprocess
 from collections.abc import Mapping as MappingABC
@@ -15,6 +16,20 @@ def atomic_write(path: Path, data: str) -> None:
 
 def read_json(path: Path) -> Dict[str, Any]:
     return json.loads(Path(path).read_text())
+
+
+def metric_report_json(data: Any) -> str:
+    """Encode unavailable numerical results as JSON null in published reports."""
+    def normalize(value):
+        if isinstance(value, float) and not math.isfinite(value):
+            return None
+        if isinstance(value, dict):
+            return {key: normalize(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [normalize(item) for item in value]
+        return value
+
+    return json.dumps(normalize(data), indent=2, allow_nan=False)
 
 
 def write_json(path: Path, data: Dict[str, Any], indent: int = 2) -> None:

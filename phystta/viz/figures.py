@@ -299,7 +299,7 @@ def _plot_grouped_bars(ax, df: pd.DataFrame, metric: str, title: str) -> None:
         for category in categories:
             row = sub[sub["scenario_id"].astype(str) == category]
             if row.empty or metric not in row.columns:
-                vals.append(0.0)
+                vals.append(float("nan"))
             else:
                 vals.append(float(_coerce_numeric(row[metric]).iloc[0]))
         offset = (-0.5 + idx) * width

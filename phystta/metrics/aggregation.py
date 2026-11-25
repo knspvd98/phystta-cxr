@@ -28,6 +28,6 @@ def aggregate_by_domain(df: pd.DataFrame, label_col: str = "label", prob_col: st
             "brier": brier_score(probs, labels),
             "aurc": aurc(errors.astype(float), conf),
             "clinical_risk": clinical_risk(probs.reshape(-1, 1), labels.reshape(-1, 1), cost_fn=cost_fn, cost_fp=cost_fp),
-            "count": len(sub),
+            "count": len(labels),
         })
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=["domain", "ece", "brier", "aurc", "clinical_risk", "count"])

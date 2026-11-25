@@ -20,7 +20,8 @@ from phystta.metrics import (
     expected_calibration_error,
     macro_average,
 )
-from phystta.metrics.risk import risk_coverage_curve, risk_coverage_inputs_multilabel
+from phystta.metrics.risk import risk_coverage_inputs_multilabel
+from phystta.utils.io import metric_report_json
 from phystta.models import build_encoder, resolve_head_contract
 from phystta.shifts import ShiftManager
 from phystta.shifts.realism import load_calibrator, scenario_grid_from_calibrator
@@ -197,7 +198,9 @@ def _eval_metrics(probs: np.ndarray, labels: np.ndarray, coverage: float) -> Dic
         metrics["auprc_macro"] = float("nan")
 
     errors, confidences = risk_coverage_inputs_multilabel(probs, labels, threshold=0.5)
-    risk_coverage_curve(errors, confidences, points=50)
+    observed = np.isfinite(errors) & np.isfinite(confidences)
+    errors = errors[observed]
+    confidences = confidences[observed]
     if confidences.size == 0:
         metrics["risk_at_coverage"] = float("nan")
         metrics["coverage_realized"] = float("nan")
@@ -710,7 +713,7 @@ def main() -> None:
     summary_rows = _build_summary_rows(scenario_df)
     summary_df = pd.DataFrame(summary_rows)
     summary_df.to_csv(out_dir / "k_sweep_summary.csv", index=False)
-    (out_dir / "k_sweep_summary.json").write_text(json.dumps(summary_rows, indent=2), encoding="utf-8")
+    (out_dir / "k_sweep_summary.json").write_text(metric_report_json(summary_rows), encoding="utf-8")
 
     winner = _winner_payload(summary_rows)
     (out_dir / "winner.txt").write_text(
